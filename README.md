@@ -1,2 +1,3 @@
 # pull-stream
-Incubator for PullStream module - may be moved into flix-sandbox
+
+Incubator for a Flix PullStream module - this module will replace the `Stream` module in `flix-sandbox`.
