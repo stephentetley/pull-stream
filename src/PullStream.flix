@@ -14,34 +14,42 @@
  * limitations under the License.
  */
 
-
-
-
 ///
-/// The Stream type.
+/// The PullStream type.
 ///
 /// A stream provides "demand driven" access to its elements - successive
 /// elements are only produced when needed. Internally the stream is
-/// represented as a "pull stream" plus a finalizer.
+/// represented as a generate function to produce the next element (and the
+/// new stream state) and a finalizer.
 ///
-/// Note - a stream is not "replayable".
+/// Note - a PullStream is not "replayable", it is internally stateful and as
+/// an element is demanded the internal state changes.
 ///
-pub opaque type PullStream[a] = { generate: Unit ~> (Unit ~> Step[a]), finalize: Unit ~> Unit }
+pub opaque type PullStream[a] =
+    { generate: Unit ~> (Unit ~> PullStream/Internal.Step[a])
+    , finalize: Unit ~> Unit
+    }
 
-///
-/// The internal type of stream answers, not pub.
-/// `Skip` allows us to write `filter` and other functions that do not
-/// necessarily produce a value at each step.
-///
-enum Step[a] {
-    case Done,
-    case Skip,
-    case Yield(a)
+namespace PullStream/Internal {
+
+    ///
+    /// The internal type of stream answers.
+    /// `Skip` allows us to write `filter` and other functions that do not
+    /// necessarily produce a value at each step.
+    ///
+    pub enum Step[a] {
+        case Done,
+        case Skip,
+        case Yield(a)
+    }
+
 }
 
 
-
 namespace PullStream {
+
+    use PullStream/Internal.Step;
+    use PullStream/Internal.Step.{Done, Skip, Yield};
 
     ///
     /// Returns the empty stream.
@@ -154,7 +162,7 @@ namespace PullStream {
         let iterFinal = iterator.finalize;
         let gen = () -> {
             let next = () ->
-                if (!hasNext()) 
+                if (not hasNext())
                     Done 
                 else 
                     Yield(iterNext());
@@ -825,7 +833,7 @@ namespace PullStream {
                     case Skip => Skip
                     case Yield(a) => {
                         let i = deref ix;
-                        if (i < b || i >= e) {
+                        if (i < b or i >= e) {
                             ix := i + 1;
                             Skip
                         } else {
