@@ -210,20 +210,18 @@ namespace PullStream {
         let generate1 = getGenerator(s);
         let finalize1 = getFinalizer(s);
         let sf = generate1();
-        let ans = toListHelper(sf, Nil);
+        let ans = toListHelper(sf, xs -> xs);
         finalize1();
         ans
 
     ///
-    /// Helper function for `toList`.
+    /// Helper function for `toList
     ///
-    /// Precodition: b < e
-    ///
-    def toListHelper(sf : Unit ~> Step[a], ac: List[a]) : List[a] & Impure =
+    def toListHelper(sf : Unit ~> Step[a], k: List[a] -> List[a]) : List[a] & Impure =
         match sf() {
-            case Done     => List.reverse(ac)
-            case Skip     => toListHelper(sf, ac)
-            case Yield(a) => toListHelper(sf, a :: ac)
+            case Done     => k(Nil)
+            case Skip     => toListHelper(sf, k)
+            case Yield(x) => toListHelper(sf, xs -> k(x :: xs))
         }
 
 
@@ -341,7 +339,7 @@ namespace PullStream {
     /// Pair each element of stream `s` with its index, the index starts at `k`.
     ///
     pub def index(k: Int32, s: PullStream[a]): PullStream[(Int32, a)] =
-        mapAccum((ix,a) -> (ix+1, (ix, a)), k, s)
+        mapAccum((ix, a) -> (ix + 1, (ix, a)), k, s)
 
     ///
     /// Pair each element of stream `s` with its index, the index starts at 0.
@@ -750,7 +748,7 @@ namespace PullStream {
     /// Note - `sameElements` forces both streams, it is a so-called "terminal operation" and
     /// you will not be able to do anything else with the streams afterwards.
     ///
-    pub def sameElements(s1: PullStream[a], s2: PullStream[a]): Bool & Impure =
+    pub def sameElements[a: Eq](s1: PullStream[a], s2: PullStream[a]): Bool & Impure =
         let generate1 = getGenerator(s1);
         let generate2 = getGenerator(s2);
         let finalize1 = getFinalizer(s1);
@@ -766,7 +764,7 @@ namespace PullStream {
     ///
     /// Helper function for `sameElements`.
     ///
-    def sameElementsHelper(sf1: Unit ~> Step[a], sf2: Unit ~> Step[a]): Bool & Impure =
+    def sameElementsHelper[a: Eq](sf1: Unit ~> Step[a], sf2: Unit ~> Step[a]): Bool & Impure =
         match (sf1(), sf2()) {
             case (Yield(a), Yield(b))   => if (a != b) false else sameElementsHelper(sf1, sf2)
             case (Yield(a), Skip)       => sameElementsHelperGoRight(a, sf1, sf2)
@@ -785,7 +783,7 @@ namespace PullStream {
     /// Precondition: stream `sf1` (left) has yielded the value `x` but `sf2` (right) yielded a `Skip`.
     /// Go along sf2 (right) to produce a value, if same continue along both.
     ///
-    def sameElementsHelperGoRight(x: a, sf1: Unit ~> Step[a], sf2: Unit ~> Step[a]) : Bool & Impure =
+    def sameElementsHelperGoRight[a: Eq](x: a, sf1: Unit ~> Step[a], sf2: Unit ~> Step[a]) : Bool & Impure =
         match sf2() {
             case Yield(y)   => if (x != y) false else sameElementsHelper(sf1, sf2)
             case Done       => false
@@ -798,7 +796,7 @@ namespace PullStream {
     /// Precondition: stream `sf2` (right) has yielded the value `x` but `sf1` (left) yielded a `Skip`.
     /// Go along sf2 (left) to produce a value, if same continue along both.
     ///
-    def sameElementsHelperGoLeft(sf1: Unit ~> Step[a], y: a, sf2: Unit ~> Step[a]) : Bool & Impure =
+    def sameElementsHelperGoLeft[a: Eq](sf1: Unit ~> Step[a], y: a, sf2: Unit ~> Step[a]) : Bool & Impure =
         match sf1() {
             case Yield(x)   => if (x != y) false else sameElementsHelper(sf1, sf2)
             case Done       => true
