@@ -1,3 +1,5 @@
 # pull-stream
 
-Incubator for a Flix PullStream module - this module will replace the `Stream` module in `flix-sandbox`.
+This repo is paused - development of the PullStream and Cursor modules has moved to the repo 'flix-sandbox'.
+
+https://github.com/stephentetley/flix-sandbox
