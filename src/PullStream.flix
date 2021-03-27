@@ -436,6 +436,31 @@ namespace PullStream {
         }
 
     ///
+    /// Returns the head of `s`.
+    ///
+    /// If the stream is productive return `Some(a)` where `a` is the first element
+    /// of `s`.
+    ///
+    /// If the stream is exhausted return `None`.
+    ///
+    pub def head(s: PullStream[a]): Option[a] & Impure =
+        let generate1 = getGenerator(s);
+        let sf = generate1();
+        headHelper(sf)
+
+    ///
+    /// Helper function for `head`.
+    ///
+    def headHelper(sf: Unit ~> Step[a]): Option[a] & Impure =
+        match sf() {
+            case Done => None
+            case Skip => headHelper(sf)
+            case Yield(a) => Some(a)
+        }
+
+
+
+    ///
     /// Returns a stream where the element at index `i` is `(a, b)` where
     /// `a` is the element at index `i` in `s1` and `b` is the element at index `i` in `s2`.
     ///
@@ -1044,6 +1069,20 @@ namespace PullStream {
     pub def average(s: PullStream[Float64]): Float64 & Impure =
         let (n, x) = fold((xy, d) -> {let (i, tot) = xy; (i + 1i64, tot + d)}, (0i64, 0.0f64), s);
         x / Int64.toFloat64(n)
+
+    ///
+    /// Optionally finds the largest element of `s` according to the `Order` on `a`.
+    ///
+    /// Returns `None` if `xs` is empty.
+    ///
+    /// `s` must be finite.
+    ///
+    pub def maximum[a: Order](s: PullStream[a]): Option[a] & Impure =
+        use Option.{flatMap};
+        let* (x1, s1)   = view(s);
+        let max         = fold((a, x) -> Order.max(a, x), x1, s1);
+        Some(max)
+
 
 
 }

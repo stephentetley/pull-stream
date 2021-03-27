@@ -12,4 +12,8 @@ def test01(): Int32 & Impure =
     Console.printLine("average: ${PullStream.average(s2)}");
     Console.printLine("length: ${PullStream.length(s1)}");
     Console.printLine("toList(s1): ${PullStream.toList(s1)}");
+    Console.printLine("maximum(s2): ${PullStream.maximum(s2)}");
+    let x1 = PullStream.head(s1);
+    let x2 = PullStream.head(s1);
+    Console.printLine("(head(s1), head(s1)): ${(x1, x2)}");
     0
