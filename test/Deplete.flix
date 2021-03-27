@@ -3,7 +3,7 @@
 
 def main(_args: Array[String]): Int32 & Impure = 
     if (test01()) 
-        {Console.printLine("Streams can be replayed"); 0}
+        {Console.printLine("Streams can be replayed!"); 0}
     else 
         {Console.printLine("Streams get depleted and cannot be replayed"); 1}
 

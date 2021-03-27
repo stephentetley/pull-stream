@@ -22,9 +22,6 @@
 /// represented as a generate function to produce the next element (and the
 /// new stream state) and a finalizer.
 ///
-/// Note - a PullStream is not "replayable", it is internally stateful and as
-/// an element is demanded the internal state changes.
-///
 pub opaque type PullStream[a] =
     { generate: Unit ~> (Unit ~> PullStream/Internal.Step[a])
     , finalize: Unit ~> Unit
@@ -295,7 +292,7 @@ namespace PullStream {
     ///
     /// Returns the result of applying `f` to every element in PullStream `s`.
     ///
-    pub def map!(f: a -> b & e, s: PullStream[a]): PullStream[b] =
+    pub def map(f: a -> b & ef, s: PullStream[a]): PullStream[b] =
         let gen = () -> {
             let generate1 = getGenerator(s);
             let sf = generate1();
@@ -745,9 +742,6 @@ namespace PullStream {
     ///
     /// Returns `true` if streams `s1` and `s1` have the same elements, i.e. are equivalent.
     ///
-    /// Note - `sameElements` forces both streams, it is a so-called "terminal operation" and
-    /// you will not be able to do anything else with the streams afterwards.
-    ///
     pub def sameElements[a: Eq](s1: PullStream[a], s2: PullStream[a]): Bool & Impure =
         let generate1 = getGenerator(s1);
         let generate2 = getGenerator(s2);
@@ -1025,10 +1019,31 @@ namespace PullStream {
             }
         }
 
+    ///
+    /// Returns the sum of the elements of Stream `s`.
+    ///
+    /// `s` must be finite.
+    ///
     pub def sum(s: PullStream[Int32]): Int32 & Impure =
         fold((a, i) -> a + i, 0, s)
 
-    pub def length(s: PullStream[Int32]): Int32 & Impure =
+    ///
+    /// Returns the length of Stream `s`.
+    ///
+    /// `s` must be finite.
+    ///
+    pub def length(s: PullStream[a]): Int32 & Impure =
         fold((a, _) -> a + 1, 0, s)
+
+
+    ///
+    /// Returns the average of the elements of Stream `s`.
+    ///
+    /// `s` must be finite.
+    ///
+    pub def average(s: PullStream[Float64]): Float64 & Impure =
+        let (n, x) = fold((xy, d) -> {let (i, tot) = xy; (i + 1i64, tot + d)}, (0i64, 0.0f64), s);
+        x / Int64.toFloat64(n)
+
 
 }
