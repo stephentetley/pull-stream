@@ -27,11 +27,12 @@
 /// Note - a stream is not "replayable".
 ///
 pub opaque type StateMPullStream[st, a] = 
-    { generate: Unit ~> (Unit ~> StateM[st, StateMPullStream/Internal.Step[a]])
-    , finalize: Unit ~> StateM[st, Unit]
+    { generate: Unit ~> (Unit ~> StateMonad.StateM[st, StateMPullStream/Internal.Step[a]])
+    , finalize: Unit ~> StateMonad.StateM[st, Unit]
     }
 
 namespace StateMPullStream/Internal {
+
 
     ///
     /// The internal type of stream answers.
@@ -48,6 +49,8 @@ namespace StateMPullStream/Internal {
 
 namespace StateMPullStream {
 
+    use StateMonad.StateM;
+    
     use StateMPullStream/Internal.Step;
     use StateMPullStream/Internal.Step.{Done, Skip, Yield};
 
@@ -132,6 +135,39 @@ namespace StateMPullStream {
             next
         };
         StateMPullStream({generate = gen, finalize = _ -> iterFinal() as & Impure}) 
+    ///
+    /// Returns a stream of all integers between `b` (inclusive) and `e` (exclusive).
+    ///
+    /// Returns an empty PullStream if `b >= e`.
+    ///
+    pub def range(b: Int32, e: Int32): StateMPullStream[st, Int32] =
+        if (b >= e)
+            empty()
+        else
+            rangeHelper(b, e)
+
+    ///
+    /// Helper function for `range`.
+    ///
+    /// Precodition: b < e
+    ///
+    def rangeHelper(b: Int32, e: Int32): StateMPullStream[st, Int32] =
+        use StateMonad.{return};
+        let gen = () -> {
+            let rx = ref b;
+            let next = () -> {
+                let x = deref rx;
+                if (x >= e)
+                    return(Done)
+                else {
+                    rx := x + 1;
+                    return(Yield(x))
+                }
+            };
+            next
+        };
+        StateMPullStream({ generate = gen, finalize = _ -> return() as & Impure })
+
 
     ///
     /// Returns the stream `s` as a list.
@@ -141,24 +177,22 @@ namespace StateMPullStream {
         let generate1   = getGenerator(s);
         let finalize1   = getFinalizer(s);
         let* sf         = liftAction(_ -> generate1());
-        let* ans        = toListHelper(sf, Nil : List[a]);
-        let* outer      = liftAction(_ -> finalize1());
-        let* ()         = outer;    /// actually run finalizer
+        let* ans        = toListHelper(sf, xs -> return(xs));
+        let* finalize   = liftAction(_ -> finalize1());
+        let* ()         = finalize;    /// actually run the finalizer
         return(ans)
 
     ///
     /// Helper function for `toList`.
     ///
-    /// Precodition: b < e
-    ///
-    def toListHelper(sf : Unit ~> StateM[st, Step[a]], ac: List[a]) : StateM[st, List[a]] =
+    def toListHelper(sf : Unit ~> StateM[st, Step[a]], mk: List[a] -> StateM[st, List[a]]) : StateM[st, List[a]] =
         use StateMonad.{flatMap, return, liftAction};
-        let* outer = liftAction(_ -> sf());
-        let* ans = outer;
+        let* step   = liftAction(_ -> sf());
+        let* ans    = step;
         match ans {
-            case Done     => return(List.reverse(ac))
-            case Skip     => toListHelper(sf, ac)
-            case Yield(a) => toListHelper(sf, a :: ac)
+            case Done     => mk(Nil)
+            case Skip     => toListHelper(sf, mk)
+            case Yield(x) => toListHelper(sf, xs -> mk(x :: xs))
         }
 
 

@@ -1025,5 +1025,10 @@ namespace PullStream {
             }
         }
 
+    pub def sum(s: PullStream[Int32]): Int32 & Impure =
+        fold((a, i) -> a + i, 0, s)
+
+    pub def length(s: PullStream[Int32]): Int32 & Impure =
+        fold((a, _) -> a + 1, 0, s)
 
 }

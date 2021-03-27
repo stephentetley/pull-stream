@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-pub opaque type StateM[s, a] = s ~> (s, a)
-
-
 namespace StateMonad {
+
+    pub opaque type StateM[s, a] = s ~> (s, a)
 
     def apply1(ma: StateM[s, a], s1: s): (s, a) & Impure = 
         let StateM(f) = ma;
