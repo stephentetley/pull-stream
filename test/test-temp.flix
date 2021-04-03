@@ -1,6 +1,6 @@
 
 
-def main(_args: Array[String]): Int64 & Impure = 
+def main(_args: Array[String]): Int32 & Impure = 
     Console.printLine("Running...");
     test01()
 
